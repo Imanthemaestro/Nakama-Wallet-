@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Nakama - Transactions</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="transactions.css">
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="logo-container">
+            <div class="logo">🪙</div>
+            <span class="logo-text">Wallet Nakama</span>
+        </div>
+        <div class="nav-links">
+            <a class="nav-item" href="dashboard.html">Home</a>
+            <a class="nav-item" href="budget.html">Calculator</a>
+            <a class="nav-item" href="about.html">About</a>
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-icon">🪙</div>
+            <h1>Wallet Nakama</h1>
+            <p>Your personal budget tracker</p>
+        </section>
+
+        <!-- Currency selector -->
+        <div class="currency-bar">
+            <label class="currency-label">Currency:</label>
+            <div class="currency-wrapper">
+                <select class="currency-select" id="currency-select-transactions">
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="NGN">NGN (₦)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tab card -->
+        <div class="tab-card">
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn" onclick="window.location.href='budget.html'">
+                    <span class="tab-icon">🪙</span> Budget tracker
+                </button>
+                <button class="tab-btn active">
+                    <span class="tab-icon">💸</span> Transactions
+                </button>
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div class="tab-content" id="empty-state">
+                <div class="empty-state">
+                    <div class="empty-icon">💱</div>
+                    <h2 class="empty-title">No transaction</h2>
+                    <button class="btn-primary" onclick="openModal()">
+                        <span>＋</span> Add transaction
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILLED STATE (hidden by default) -->
+            <div class="tab-content" id="filled-state" style="display:none;">
+
+                <!-- Transaction History -->
+                <div class="section-card">
+                    <h3 class="section-title">Transaction History</h3>
+                    <div class="transaction-list" id="transaction-list">
+                        <!-- rows injected by JS -->
+                    </div>
+                    <div class="add-btn-row">
+                        <button class="btn-primary" onclick="openModal()">
+                            <span>＋</span> Add transaction
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Budget Summary -->
+                <div class="section-card summary-card">
+                    <h3 class="summary-heading">
+                        <span class="summary-icon">📊</span> Budget Summary
+                    </h3>
+
+                    <div class="summary-row income-row">
+                        <span class="summary-row-icon">💰</span>
+                        <span class="summary-label">Total Income:</span>
+                        <span class="summary-value" id="total-income">$ 0</span>
+                    </div>
+
+                    <div class="summary-row expense-row">
+                        <span class="summary-row-icon">💸</span>
+                        <span class="summary-label">Total Expenses:</span>
+                        <span class="summary-value" id="total-expenses">$ 0</span>
+                    </div>
+
+                    <hr class="summary-divider">
+
+                    <div class="summary-row deficit-row" id="deficit-row">
+                        <span class="summary-row-icon">📍</span>
+                        <span class="summary-label">Deficit</span>
+                        <span class="summary-value" id="deficit-value">-$ 0</span>
+                    </div>
+
+                    <div class="summary-row surplus-row" id="surplus-row">
+                        <span class="summary-row-icon">🛡️</span>
+                        <span class="summary-label">Surplus</span>
+                        <span class="summary-value" id="surplus-value">+$ 0</span>
+                    </div>
+
+                    <div class="summary-message" id="summary-message">
+                        <span class="msg-icon">💬</span>
+                        <span id="message-text">Message: You either did good or….</span>
+                    </div>
+
+                    <button class="btn-save">♡ Save Budget</button>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-circle"></div>
+        <div class="footer-circle2"></div>
+        <div class="footer-inner">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon">🪙</div>
+                    <span class="footer-logo-text">Wallet Nakama</span>
+                </div>
+                <p class="footer-desc">
+                    Wallet Nakama is your friendly companion for smarter money management.
+                    Inspired by the word "Nakama" meaning trusted friends and companions,
+                    Wallet Nakama helps you stay on top of your finances without the stress
+                    or complexity of traditional budgeting apps.
+                </p>
+            </div>
+            <div class="footer-tools">
+                <h4>Tools</h4>
+                <a href="#">Budget calculator</a>
+                <a href="#">Transaction management</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ADD TRANSACTION MODAL -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal" id="modal">
+        <h3 class="modal-title">Add Transaction</h3>
+
+        <div class="modal-field">
+            <label>Recipient Name</label>
+            <input type="text" id="input-name" placeholder="e.g. Rent, Salary...">
+        </div>
+        <div class="modal-field">
+            <label>Amount ($)</label>
+            <input type="number" id="input-amount" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="modal-field">
+            <label>Type</label>
+            <select id="input-type">
+                <option value="income">Income (+)</option>
+                <option value="expense">Expense (-)</option>
+            </select>
+        </div>
+        <div class="modal-field">
+            <label>Date</label>
+            <input type="date" id="input-date">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-primary" onclick="addTransaction()">Add</button>
+        </div>
+    </div>
+
+    <script src="transactions.js">
+    const links = document.querySelectorAll('.nav-item');
+    links.forEach(link => {
+        if (link.href === window.location.href) {
+            link.classList.add('active');
+        }
+    });
+    </script>
+</body>
+</html>
