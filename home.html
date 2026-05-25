@@ -6,24 +6,28 @@
   <title>Dashboard - Wallet Nakama</title>
   <link rel="stylesheet" href="shared.css" />
   <link rel="stylesheet" href="home.css" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+
   <div id="toast-container" aria-live="polite"></div>
 
+  <!-- NAVBAR -->
   <nav class="navbar" id="main-nav">
     <div class="nav-inner">
       <a href="home.html" class="nav-logo">
-        <div class="logo-icon sm">💼</div>
+        <div class="logo-icon sm">
+          <img src="icons for wallet nakama/Card Wallet.png" alt="Wallet Nakama logo" />
+        </div>
         <span>Wallet Nakama</span>
       </a>
       <button class="hamburger" id="hamburger" aria-label="Toggle menu">
         <span></span><span></span><span></span>
       </button>
       <ul class="nav-links" id="nav-links">
-        <li><a href="home.html" class="nav-link active">Home</a></li>
+        <li><a href="home.html" class="nav-link">Home</a></li>
         <li><a href="calculator.html" class="nav-link">Calculator</a></li>
+        <li><a href="transactions.html" class="nav-link">Transactions</a></li>
         <li><a href="about.html" class="nav-link">About</a></li>
       </ul>
       <div class="nav-user">
@@ -33,46 +37,74 @@
     </div>
   </nav>
 
-  <main class="page active">
-    <section class="hero">
-      <div class="hero-logo-icon">💼</div>
+  <main class="page">
+
+    <!-- Hero -->
+    <section class="hero" style="margin-top: 120px;">
+      <div class="hero-logo-icon">
+        <img src="icons for wallet nakama/Card Wallet.png" alt="Wallet Nakama logo" />
+      </div>
       <h1 class="hero-title">Wallet Nakama</h1>
       <p class="hero-sub">Your personal budget tracker</p>
     </section>
 
     <div class="page-content">
+
+      <!-- Dashboard header + currency -->
       <div class="dash-header">
         <h2 class="section-title italic">Your Nakama Dashboard</h2>
-        <div class="currency-select-wrap">
-          <select id="global-currency" class="currency-dropdown">
+        <div class="currency-wrapper">
+          <select id="global-currency" class="currency-select">
             <option value="NGN">NGN (₦)</option>
             <option value="USD">USD ($)</option>
             <option value="GBP">GBP (£)</option>
+            <option value="EUR">EUR (€)</option>
           </select>
         </div>
       </div>
 
+      <!-- Stat Cards (Dave's structure, Iman's colors) -->
       <div class="stat-cards" id="stat-cards">
-        <div class="stat-card green"><div class="stat-label">TOTAL BUDGETED</div><div class="stat-value" id="stat-budgeted">₦0.00</div></div>
-        <div class="stat-card red"><div class="stat-label">TOTAL SPENT</div><div class="stat-value" id="stat-spent">₦0.00</div></div>
-        <div class="stat-card dark"><div class="stat-label">REMAINING</div><div class="stat-value" id="stat-remaining">₦0.00</div></div>
+        <div class="stat-card green">
+          <div class="stat-label">TOTAL BUDGETED</div>
+          <div class="stat-value" id="stat-budgeted">₦0.00</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">TOTAL SPENT</div>
+          <div class="stat-value" id="stat-spent">₦0.00</div>
+        </div>
+        <div class="stat-card dark">
+          <div class="stat-label">REMAINING</div>
+          <div class="stat-value" id="stat-remaining">₦0.00</div>
+        </div>
       </div>
 
+      <!-- Chart + Transactions -->
       <div class="two-col">
+
+        <!-- Iman's doughnut chart -->
         <div class="card">
           <h3 class="card-title">Spending Breakdown</h3>
           <div class="chart-wrap" id="chart-wrap">
             <canvas id="pie-chart"></canvas>
-            <div class="chart-empty" id="chart-empty">No data yet</div>
+            <div class="chart-center-label" id="chart-center">
+              <span class="center-amount" id="center-amount">₦0</span>
+              <span class="center-sub">remaining</span>
+            </div>
+            <div class="chart-empty hidden" id="chart-empty">No data yet</div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#2BB31C"></div>Remaining</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#EB3636"></div>Spent</div>
           </div>
         </div>
 
+        <!-- Dave's transaction list -->
         <div class="card">
           <div class="card-head">
             <h3 class="card-title">Transaction History</h3>
             <button class="btn-add" id="open-tx-modal">+ Add</button>
           </div>
-
           <div class="tx-filters" id="tx-filters">
             <input type="text" id="tx-search" placeholder="Search…" class="search-input" />
             <select id="tx-filter-type" class="filter-select">
@@ -87,60 +119,65 @@
               <option value="all">All Months</option>
             </select>
           </div>
-
           <div class="tx-list" id="tx-list">
             <div class="empty-state" id="tx-empty">No transactions yet. Click "+ Add" to get started.</div>
           </div>
         </div>
       </div>
 
+      <!-- Dave's Budget Goals -->
       <div class="card goals-card">
         <h3 class="card-title">💰 Budget Goals</h3>
-        <p class="card-sub">Set monthly spending targets per category — saved to your account.</p>
+        <p class="card-sub">Set monthly spending targets per category.</p>
         <div class="goals-form">
           <select id="goal-category" class="filter-select">
-            <option value="Rent">Rent</option><option value="Groceries">Groceries</option><option value="Healthcare">Healthcare</option>
-            <option value="Transportation">Transportation</option><option value="Utilities">Utilities</option><option value="Insurance">Insurance</option>
-            <option value="Savings & Investments">Savings &amp; Investments</option><option value="Others">Others</option>
+            <option value="Rent">Rent</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Transportation">Transportation</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Insurance">Insurance</option>
+            <option value="Savings & Investments">Savings &amp; Investments</option>
+            <option value="Others">Others</option>
           </select>
           <select id="goal-currency" class="filter-select">
-            <option value="NGN">₦ NGN</option><option value="USD">$ USD</option><option value="GBP">£ GBP</option>
+            <option value="NGN">₦ NGN</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+            <option value="EUR">€ EUR</option>
           </select>
           <input type="number" id="goal-amount" placeholder="Amount" class="search-input" min="0" step="0.01" />
-          <button class="btn-set" id="set-goal-btn">Set</button>
+          <button class="btn-set" id="set-goal-btn">Set Goal</button>
         </div>
         <div class="goals-list" id="goals-list"></div>
-        <p class="goals-note">🔒 Data is saved per account. Sign in on any device to access your wallet.</p>
+        <p class="goals-note">🔒 Data is saved to your account.</p>
       </div>
+
     </div>
   </main>
 
+  <!-- Add Transaction Modal -->
   <div id="tx-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card">
       <div class="modal-head">
         <h3 id="modal-title">Add Transaction</h3>
         <button class="modal-close" id="close-tx-modal" aria-label="Close">✕</button>
       </div>
-
       <div class="tx-type-tabs">
         <button class="tx-type-tab active" data-type="income">Income</button>
         <button class="tx-type-tab" data-type="expense">Expense</button>
       </div>
-
       <form id="tx-form" novalidate>
         <input type="hidden" id="tx-edit-id" value="" />
-
         <div class="form-group">
           <label for="tx-name">Transaction Name</label>
           <input type="text" id="tx-name" placeholder="e.g. Monthly Salary" />
           <span class="field-error" id="tx-name-err"></span>
         </div>
-
         <div class="form-group">
           <label for="tx-category">Category</label>
           <select id="tx-category"></select>
         </div>
-
         <div class="form-row">
           <div class="form-group" style="flex:2">
             <label for="tx-amount">Amount</label>
@@ -153,32 +190,33 @@
               <option value="NGN">₦ NGN</option>
               <option value="USD">$ USD</option>
               <option value="GBP">£ GBP</option>
+              <option value="EUR">€ EUR</option>
             </select>
           </div>
         </div>
-
         <div class="form-group">
           <label for="tx-date">Date</label>
           <input type="date" id="tx-date" />
         </div>
-
         <div class="form-group">
           <label for="tx-notes">Notes <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
           <textarea id="tx-notes" rows="2" placeholder="Any extra details…"></textarea>
         </div>
-
         <div class="form-msg" id="tx-msg"></div>
         <button type="submit" class="btn-primary btn-full" id="tx-submit-btn">Save Transaction</button>
       </form>
     </div>
   </div>
 
+  <!-- FOOTER -->
   <footer class="site-footer">
+    <div class="footer-circle"></div>
+    <div class="footer-circle2"></div>
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-logo">
-          <div class="logo-icon sm">💼</div>
-          <span>Wallet Nakama</span>
+          <div class="logo-icon sm">🪙</div>
+          <span class="footer-logo-text">Wallet Nakama</span>
         </div>
         <p>Your friendly companion for smarter money management. Inspired by "Nakama" — trusted friends and companions.</p>
       </div>
@@ -186,13 +224,13 @@
         <h4>Tools</h4>
         <ul>
           <li><a href="calculator.html">Budget calculator</a></li>
-          <li><a href="home.html">Transaction management</a></li>
+          <li><a href="transactions.html">Transaction management</a></li>
           <li><a href="about.html">About</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <p>© 2026 Wallet Nakama. Done By Bethlehem, Fatima And David .</p>
+      <p>© 2026 Wallet Nakama. Done By Bethlehem, Fatima And David.</p>
     </div>
   </footer>
 

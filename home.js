@@ -1,6 +1,8 @@
 /* ============================================================
    home.js — Dashboard Logic
+   Dave's logic + Iman's doughnut chart design
    ============================================================ */
+'use strict';
 
 let pieChartInstance = null;
 const txModal = document.getElementById('tx-modal');
@@ -8,65 +10,136 @@ const txModal = document.getElementById('tx-modal');
 document.addEventListener('DOMContentLoaded', () => {
   requireAuth();
 
+  /* Currency selector */
   const currSelect = document.getElementById('global-currency');
   if (currSelect) {
     currSelect.value = globalCurrency;
-    currSelect.addEventListener('change', function() {
+    currSelect.addEventListener('change', function () {
       globalCurrency = this.value;
       saveUserPrefs({ ...getUserPrefs(), currency: globalCurrency });
       refreshAll();
     });
   }
 
+  /* Default date */
   const dateInput = document.getElementById('tx-date');
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
+  /* Modal */
   document.getElementById('open-tx-modal')?.addEventListener('click', () => openTxModal());
   document.getElementById('close-tx-modal')?.addEventListener('click', closeTxModal);
-  if (txModal) txModal.addEventListener('click', e => { if (e.target === txModal) closeTxModal(); });
-  
+  txModal?.addEventListener('click', e => { if (e.target === txModal) closeTxModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTxModal(); });
+
   initTxForm();
-  
+
+  /* Filters */
   ['tx-search','tx-filter-type','tx-filter-cat','tx-filter-month'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('input', renderTransactionList);
+    document.getElementById(id)?.addEventListener('input', renderTransactionList);
   });
 
+  /* Goals */
   document.getElementById('set-goal-btn')?.addEventListener('click', handleSetGoal);
   document.getElementById('goals-list')?.addEventListener('click', handleDeleteGoal);
 
   refreshAll();
 });
 
+/* ── Refresh All ── */
 function refreshAll() {
   updateStatCards();
   renderTransactionList();
-  renderPieChart();
+  renderChart();
   renderGoals();
 }
 
+/* ── Stat Cards ── */
 function updateStatCards() {
-  const txs = getTransactions();
-  const goals = getGoals();
-
-  const totalIncome   = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amountNGN, 0);
-  const totalExpense  = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amountNGN, 0);
+  const txs      = getTransactions();
+  const goals    = getGoals();
+  const totalIncome  = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amountNGN, 0);
+  const totalExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amountNGN, 0);
   const totalBudgeted = goals.reduce((s, g) => s + g.amountNGN, 0);
-  const budgetBase    = totalBudgeted || totalIncome;
-  const remaining     = budgetBase - totalExpense;
+  const budgetBase = totalBudgeted || totalIncome;
+  const remaining  = budgetBase - totalExpense;
 
   document.getElementById('stat-budgeted').textContent  = formatCurrency(budgetBase, globalCurrency);
   document.getElementById('stat-spent').textContent     = formatCurrency(totalExpense, globalCurrency);
-
   const remEl = document.getElementById('stat-remaining');
   remEl.textContent = (remaining < 0 ? '-' : '') + formatCurrency(Math.abs(remaining), globalCurrency);
-  remEl.style.color = remaining < 0 ? 'var(--red-600)' : '';
+  remEl.style.color = remaining < 0 ? 'var(--red)' : '';
 }
 
+/* ── Iman's Doughnut Chart ── */
+function renderChart() {
+  const txs      = getTransactions();
+  const canvas   = document.getElementById('pie-chart');
+  const emptyEl  = document.getElementById('chart-empty');
+  const centerEl = document.getElementById('chart-center');
+  if (!canvas) return;
+
+  const totalIncome  = txs.filter(t => t.type === 'income').reduce((s, t) => s + t.amountNGN, 0);
+  const totalExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amountNGN, 0);
+  const goals        = getGoals();
+  const budgetBase   = goals.reduce((s, g) => s + g.amountNGN, 0) || totalIncome;
+  const remaining    = Math.max(budgetBase - totalExpense, 0);
+
+  /* Update center label */
+  const centerAmount = document.getElementById('center-amount');
+  if (centerAmount) centerAmount.textContent = formatCurrency(remaining, globalCurrency);
+
+  if (txs.length === 0) {
+    canvas.style.display = 'none';
+    centerEl?.classList.add('hidden');
+    emptyEl?.classList.remove('hidden');
+    if (pieChartInstance) { pieChartInstance.destroy(); pieChartInstance = null; }
+    return;
+  }
+
+  canvas.style.display = 'block';
+  emptyEl?.classList.add('hidden');
+  centerEl?.classList.remove('hidden');
+
+  const data   = budgetBase > 0 ? [remaining, totalExpense] : [0, 0, 100];
+  const labels = ['Remaining', 'Spent'];
+
+  if (pieChartInstance) pieChartInstance.destroy();
+
+  pieChartInstance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: data.map(v => parseFloat(fromNGN(v, globalCurrency).toFixed(2))),
+        backgroundColor: ['#2BB31C', '#EB3636'],
+        borderWidth: 0,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      cutout: '72%',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${formatCurrency(
+              ctx.dataIndex === 0 ? remaining : totalExpense,
+              globalCurrency
+            )}`
+          }
+        }
+      },
+      animation: { animateRotate: true, duration: 700 }
+    }
+  });
+}
+
+/* ── Transaction Modal ── */
 function openTxModal(editId = null) {
   document.getElementById('tx-edit-id').value = editId || '';
-  document.getElementById('modal-title').textContent = editId ? 'Edit Transaction' : 'Add Transaction';
-  document.getElementById('tx-submit-btn').textContent = editId ? 'Update Transaction' : 'Save Transaction';
+  document.getElementById('modal-title').textContent     = editId ? 'Edit Transaction' : 'Add Transaction';
+  document.getElementById('tx-submit-btn').textContent   = editId ? 'Update Transaction' : 'Save Transaction';
   clearMsg('tx-msg');
 
   if (editId) {
@@ -101,7 +174,7 @@ function initTxForm() {
     btn.addEventListener('click', () => setTxType(btn.dataset.type));
   });
 
-  document.getElementById('tx-amount')?.addEventListener('input', function() {
+  document.getElementById('tx-amount')?.addEventListener('input', function () {
     let v = this.value.replace(/[^0-9.]/g, '');
     const parts = v.split('.');
     if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
@@ -109,7 +182,7 @@ function initTxForm() {
     this.value = v;
   });
 
-  document.getElementById('tx-form')?.addEventListener('submit', function(e) {
+  document.getElementById('tx-form')?.addEventListener('submit', function (e) {
     e.preventDefault();
     clearErrors(['tx-name-err', 'tx-amount-err']);
     clearMsg('tx-msg');
@@ -124,8 +197,8 @@ function initTxForm() {
     const editId   = document.getElementById('tx-edit-id').value;
 
     let valid = true;
-    if (!name) { setError('tx-name-err', 'Transaction name is required'); valid = false; }
-    if (!amount || amount <= 0) { setError('tx-amount-err', 'Enter a valid amount'); valid = false; }
+    if (!name)                 { setError('tx-name-err', 'Transaction name is required'); valid = false; }
+    if (!amount || amount <= 0){ setError('tx-amount-err', 'Enter a valid amount'); valid = false; }
     if (!valid) return;
 
     const amountNGN = toNGN(amount, currency);
@@ -135,7 +208,7 @@ function initTxForm() {
       const idx = txs.findIndex(t => t.id === editId);
       if (idx !== -1) {
         txs[idx] = { ...txs[idx], type, name, category, amount, currency, amountNGN, date, notes };
-        showToast('Transaction updated!');
+        showToast('Transaction updated! ✅');
       }
     } else {
       txs.push({ id: uid(), type, name, category, amount, currency, amountNGN, date, notes, createdAt: Date.now() });
@@ -155,6 +228,7 @@ function setTxType(type) {
   select.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
+/* ── Transaction List ── */
 function renderTransactionList() {
   const txs    = getTransactions();
   const search = (document.getElementById('tx-search')?.value || '').toLowerCase();
@@ -166,7 +240,7 @@ function renderTransactionList() {
 
   const filtered = txs.filter(tx => {
     if (type !== 'all' && tx.type !== type) return false;
-    if (cat !== 'all' && tx.category !== cat) return false;
+    if (cat  !== 'all' && tx.category !== cat) return false;
     if (month !== 'all' && !tx.date.startsWith(month)) return false;
     if (search && !tx.name.toLowerCase().includes(search) && !tx.category.toLowerCase().includes(search)) return false;
     return true;
@@ -176,10 +250,11 @@ function renderTransactionList() {
   if (!list) return;
 
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty-state">${txs.length === 0 ? 'No transactions yet. Click "+ Add" to get started.' : 'No transactions match your filters.'}</div>`;
+    list.innerHTML = `<div class="empty-state">${txs.length === 0
+      ? 'No transactions yet. Click "+ Add" to get started.'
+      : 'No transactions match your filters.'}</div>`;
     return;
   }
-
   list.innerHTML = filtered.map(tx => txItemHTML(tx)).join('');
 }
 
@@ -204,25 +279,23 @@ function populateTxFilterOptions(txs) {
 }
 
 function txItemHTML(tx) {
-  const icon = CATEGORY_ICONS[tx.category] || (tx.type === 'income' ? '💚' : '🔴');
-  const sign = tx.type === 'income' ? '+' : '-';
-  const dateStr = formatDate(tx.date);
+  const icon  = CATEGORY_ICONS[tx.category] || (tx.type === 'income' ? '💚' : '🔴');
+  const sign  = tx.type === 'income' ? '+' : '-';
   return `
     <div class="tx-item" data-id="${tx.id}">
       <div class="tx-icon ${tx.type}">${icon}</div>
       <div class="tx-info">
         <div class="tx-name">${escapeHTML(tx.name)}</div>
-        <div class="tx-meta">${tx.category} · ${dateStr}</div>
+        <div class="tx-meta">${tx.category} · ${formatDate(tx.date)}</div>
       </div>
       <div class="tx-right">
         <div class="tx-amount ${tx.type}">${sign}${formatCurrency(tx.amountNGN, globalCurrency)}</div>
         <div class="tx-actions">
-          <button class="btn-icon edit" data-action="edit" data-id="${tx.id}" title="Edit">✏️</button>
-          <button class="btn-icon del" data-action="delete" data-id="${tx.id}" title="Delete">🗑️</button>
+          <button class="btn-icon edit" data-action="edit"   data-id="${tx.id}" title="Edit">✏️</button>
+          <button class="btn-icon del"  data-action="delete" data-id="${tx.id}" title="Delete">🗑️</button>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
 document.getElementById('tx-list')?.addEventListener('click', e => {
@@ -231,74 +304,29 @@ document.getElementById('tx-list')?.addEventListener('click', e => {
   const id = btn.dataset.id;
   if (btn.dataset.action === 'delete') {
     if (!confirm('Delete this transaction?')) return;
-    const txs = getTransactions().filter(t => t.id !== id);
-    saveTransactions(txs);
+    saveTransactions(getTransactions().filter(t => t.id !== id));
     showToast('Transaction deleted.', 'warning');
     refreshAll();
   }
   if (btn.dataset.action === 'edit') openTxModal(id);
 });
 
-function renderPieChart() {
-  const txs = getTransactions().filter(t => t.type === 'expense');
-  const canvas = document.getElementById('pie-chart');
-  const empty  = document.getElementById('chart-empty');
-
-  if (!canvas) return;
-
-  if (txs.length === 0) {
-    canvas.style.display = 'none';
-    empty.style.display = 'flex';
-    if (pieChartInstance) { pieChartInstance.destroy(); pieChartInstance = null; }
-    return;
-  }
-
-  canvas.style.display = 'block';
-  empty.style.display = 'none';
-
-  const catMap = {};
-  txs.forEach(t => { catMap[t.category] = (catMap[t.category] || 0) + t.amountNGN; });
-  const labels = Object.keys(catMap);
-  const data   = Object.values(catMap).map(v => parseFloat(fromNGN(v, globalCurrency).toFixed(2)));
-
-  const PALETTE = ['#5a3d8a','#7253a8','#8b6bbf','#a98dd6','#2d1b4e','#c4aee8','#3b2067','#d8c8f0'];
-
-  if (pieChartInstance) pieChartInstance.destroy();
-
-  pieChartInstance = new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data, backgroundColor: PALETTE.slice(0, labels.length), borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 12 }, padding: 12, boxWidth: 14 } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${CURRENCY_SYMBOLS[globalCurrency]}${numberWithCommas(ctx.parsed.toFixed(2))}` } }
-      },
-      animation: { animateRotate: true, duration: 600 }
-    }
-  });
-}
-
+/* ── Budget Goals ── */
 function handleSetGoal() {
-  const category = document.getElementById('goal-category').value;
-  const currency = document.getElementById('goal-currency').value;
+  const category  = document.getElementById('goal-category').value;
+  const currency  = document.getElementById('goal-currency').value;
   const amountRaw = parseFloat(document.getElementById('goal-amount').value);
-
   if (!amountRaw || amountRaw <= 0) { showToast('Enter a valid goal amount.', 'error'); return; }
 
   const amountNGN = toNGN(amountRaw, currency);
   const goals = getGoals();
   const existing = goals.findIndex(g => g.category === category);
-
-  if (existing !== -1) { goals[existing] = { ...goals[existing], amountNGN, amount: amountRaw, currency }; } 
+  if (existing !== -1) { goals[existing] = { ...goals[existing], amountNGN, amount: amountRaw, currency }; }
   else { goals.push({ id: uid(), category, amountNGN, amount: amountRaw, currency }); }
 
   saveGoals(goals);
   document.getElementById('goal-amount').value = '';
-  showToast(`Goal set for ${category}!`);
+  showToast(`Goal set for ${category}! 🎯`);
   refreshAll();
 }
 
@@ -314,7 +342,7 @@ function renderGoals() {
   }
 
   list.innerHTML = goals.map(goal => {
-    const spent = txs.filter(t => t.type === 'expense' && t.category === goal.category).reduce((s, t) => s + t.amountNGN, 0);
+    const spent     = txs.filter(t => t.type === 'expense' && t.category === goal.category).reduce((s, t) => s + t.amountNGN, 0);
     const budgeted  = goal.amountNGN;
     const remaining = budgeted - spent;
     const pct       = budgeted > 0 ? Math.min((spent / budgeted) * 100, 100) : 0;
@@ -333,22 +361,18 @@ function renderGoals() {
         <div style="display:flex;justify-content:space-between;align-items:center">
           <div class="goal-amounts">
             Spent: ${formatCurrency(spent, globalCurrency)} / Budget: ${formatCurrency(budgeted, globalCurrency)}
-            · Remaining: <strong style="color:${over ? 'var(--red-600)' : 'var(--green-700)'}">${remDisplay}</strong>
+            · Remaining: <strong style="color:${over ? 'var(--red)' : 'var(--green3)'}">${remDisplay}</strong>
           </div>
           <div class="goal-pct ${over ? 'over' : ''}">${pct.toFixed(0)}%</div>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
 }
 
 function handleDeleteGoal(e) {
   const btn = e.target.closest('[data-goal-id]');
   if (!btn) return;
-  const goals = getGoals().filter(g => g.id !== btn.dataset.goalId);
-  saveGoals(goals);
+  saveGoals(getGoals().filter(g => g.id !== btn.dataset.goalId));
   showToast('Goal removed.', 'warning');
   refreshAll();
 }
-
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTxModal(); });

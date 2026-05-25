@@ -14,13 +14,16 @@
   <nav class="navbar" id="main-nav">
     <div class="nav-inner">
       <a href="home.html" class="nav-logo">
-        <div class="logo-icon sm">💼</div>
+        <div class="logo-icon sm">
+          <img src="icons for wallet nakama/Card Wallet.png" alt="Wallet Nakama logo" />
+        </div>
         <span>Wallet Nakama</span>
       </a>
       <button class="hamburger" id="hamburger" aria-label="Toggle menu">
         <span></span><span></span><span></span>
       </button>
       <ul class="nav-links" id="nav-links">
+        <li><a href="transactions.html" class="nav-link">Transactions</a></li>
         <li><a href="home.html" class="nav-link">Home</a></li>
         <li><a href="calculator.html" class="nav-link active">Calculator</a></li>
         <li><a href="about.html" class="nav-link">About</a></li>
@@ -32,19 +35,35 @@
     </div>
   </nav>
 
-  <main class="page active">
+  <!--
+    FIX 1 — Navbar → hero spacing:
+      Navbar: fixed, top: 18px, height: 64px → bottom edge at 82px.
+      padding-top: 120px gives ~38px of visible gap between navbar and hero icon.
+    FIX 2 — Bottom spacing: padding-bottom: 80px clears the footer.
+  -->
+  <main class="page active" style="padding-top: 120px; padding-bottom: 80px;">
+
     <section class="hero">
-      <div class="hero-logo-icon">💼</div>
+      <div class="hero-logo-icon">
+        <img src="icons for wallet nakama/Card Wallet.png" alt="Wallet Nakama logo" />
+      </div>
       <h1 class="hero-title">Wallet Nakama</h1>
       <p class="hero-sub">Your personal budget tracker</p>
     </section>
 
     <div class="page-content">
       <div class="calc-tabs">
+        <!-- Budget tracker: active, stays on this page -->
         <button class="calc-tab active" data-calc="budget">🔥 Budget tracker</button>
-        <button class="calc-tab" data-calc="transactions">🟦 Transactions</button>
+        <!--
+          FIX 3 — Transactions tab: was toggling a panel inside this page (which then
+          showed a blank transaction list because it used a different storage shape).
+          Now navigates to transactions.html where that feature actually lives.
+        -->
+        <button class="calc-tab" onclick="window.location.href='transactions.html'">🟦 Transactions</button>
       </div>
 
+      <!-- Budget panel only — calc-tx-panel removed, it lives on transactions.html now -->
       <div id="calc-budget-panel" class="calc-panel active">
         <div class="period-row">
           <label>Period:</label>
@@ -100,34 +119,23 @@
           <button class="btn-primary btn-full save-budget-btn" id="save-budget-btn">💜 Save Budget</button>
         </div>
       </div>
-
-      <div id="calc-tx-panel" class="calc-panel hidden">
-        <div class="card">
-          <div class="card-head">
-            <h3 class="card-title">Transaction History</h3>
-          </div>
-          <div class="tx-filters">
-            <input type="text" id="tx-search-calc" placeholder="Search…" class="search-input" />
-            <select id="tx-filter-type-calc" class="filter-select">
-              <option value="all">All Types</option>
-              <option value="income">Income</option>
-              <option value="expense">Expense</option>
-            </select>
-          </div>
-          <div class="tx-list" id="tx-list-calc">
-            <div class="empty-state">No transactions yet.</div>
-          </div>
-        </div>
-      </div>
     </div>
   </main>
 
+  <!--
+    FIX 4 — Footer: was using .footer-links ul > li > a but the old HTML had no <ul>/<li>
+    wrappers, so shared.css footer link styles never applied. Now matches home.html exactly:
+    dark green bg (var(--green3)), decorative circles, .footer-links ul structure,
+    .footer-bottom with correct copyright text.
+  -->
   <footer class="site-footer">
+    <div class="footer-circle"></div>
+    <div class="footer-circle2"></div>
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-logo">
           <div class="logo-icon sm">💼</div>
-          <span>Wallet Nakama</span>
+          <span class="footer-logo-text">Wallet Nakama</span>
         </div>
         <p>Your friendly companion for smarter money management. Inspired by "Nakama" — trusted friends and companions.</p>
       </div>
@@ -135,12 +143,14 @@
         <h4>Tools</h4>
         <ul>
           <li><a href="calculator.html">Budget calculator</a></li>
-          <li><a href="home.html">Transaction management</a></li>
+          <li><a href="transactions.html">Transaction management</a></li>
           <li><a href="about.html">About</a></li>
         </ul>
       </div>
     </div>
-    <div class="footer-bottom"><p>© 2026 Wallet Nakama. All rights reserved.</p></div>
+    <div class="footer-bottom">
+      <p>© 2026 Wallet Nakama. Done By Bethlehem, Fatima And David.</p>
+    </div>
   </footer>
 
   <script src="shared.js"></script>
