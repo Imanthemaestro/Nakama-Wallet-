@@ -1,29 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet Nakama - Transactions</title>
-    <link rel="stylesheet" href="dashboard.css">
-    <link rel="stylesheet" href="transactions.css">
-</head>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Wallet Nakama - Transactions</title>
+        <link rel="stylesheet" href="shared.css" />
+        <link rel="stylesheet" href="transactions.css" />
+    </head>
 <body>
 
+    <div id="toast-container" aria-live="polite"></div>
+
     <!-- NAVBAR -->
-    <nav class="navbar">
-        <div class="logo-container">
-            <div class="logo">🪙</div>
-            <span class="logo-text">Wallet Nakama</span>
-        </div>
-        <div class="nav-links">
-            <a class="nav-item" href="dashboard.html">Home</a>
-            <a class="nav-item" href="budget.html">Calculator</a>
-            <a class="nav-item" href="about.html">About</a>
+    <nav class="navbar" id="main-nav">
+        <div class="nav-inner">
+          <a href="home.html" class="nav-logo">
+            <div class="logo-icon sm">🪙</div>
+            <span>Wallet Nakama</span>
+          </a>
+          <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+            <span></span><span></span><span></span>
+          </button>
+          <ul class="nav-links" id="nav-links">
+            <li><a href="home.html" class="nav-link">Home</a></li>
+            <li><a href="calculator.html" class="nav-link">Calculator</a></li>
+            <li><a href="transactions.html" class="nav-link active">Transactions</a></li>
+            <li><a href="about.html" class="nav-link">About</a></li>
+          </ul>
+          <div class="nav-user">
+            <span class="nav-hello">Hello, <strong id="nav-username"></strong></span>
+            <button class="btn-signout" id="signout-btn">Sign Out</button>
+          </div>
         </div>
     </nav>
 
-    <!-- MAIN -->
-    <main class="main">
+    <!--
+      FIX 1 — Spacing top/bottom:
+        - padding-top: 110px clears the floating navbar (fixed, top:18px, height:64px = 82px min)
+          plus ~28px of breathing room between navbar bottom and hero.
+        - padding-bottom: 80px stops content from flushing into the footer.
+    -->
+    <main class="main" style="padding-top: 110px; padding-bottom: 80px;">
 
         <!-- Hero -->
         <section class="hero">
@@ -48,9 +65,13 @@
         <!-- Tab card -->
         <div class="tab-card">
 
-            <!-- Tabs -->
+            <!--
+              FIX 2 — Tab navigation:
+                Budget tracker → goes to calculator.html (correct, was already right)
+                Transactions   → this IS transactions.html, so it's active and stays here
+            -->
             <div class="tabs">
-                <button class="tab-btn" onclick="window.location.href='budget.html'">
+                <button class="tab-btn" onclick="window.location.href='calculator.html'">
                     <span class="tab-icon">🪙</span> Budget tracker
                 </button>
                 <button class="tab-btn active">
@@ -69,15 +90,12 @@
                 </div>
             </div>
 
-            <!-- FILLED STATE (hidden by default) -->
+            <!-- FILLED STATE (hidden until transactions exist) -->
             <div class="tab-content" id="filled-state" style="display:none;">
 
-                <!-- Transaction History -->
                 <div class="section-card">
                     <h3 class="section-title">Transaction History</h3>
-                    <div class="transaction-list" id="transaction-list">
-                        <!-- rows injected by JS -->
-                    </div>
+                    <div class="transaction-list" id="transaction-list"></div>
                     <div class="add-btn-row">
                         <button class="btn-primary" onclick="openModal()">
                             <span>＋</span> Add transaction
@@ -119,42 +137,48 @@
 
                     <div class="summary-message" id="summary-message">
                         <span class="msg-icon">💬</span>
-                        <span id="message-text">Message: You either did good or….</span>
+                        <span id="message-text">Add transactions above to see your summary.</span>
                     </div>
 
-                    <button class="btn-save">♡ Save Budget</button>
+                    <!-- FIX 3 — Save Budget: was a dead button with no onclick; now calls saveBudget() -->
+                    <button class="btn-save" onclick="saveBudget()">♡ Save Budget</button>
                 </div>
 
             </div>
         </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer>
+    <!--
+      FIX 4 — Footer: replaced broken version (wrong bg color, href="#" links, missing
+      footer-bottom / circles) with the correct shared.css .site-footer structure,
+      matching home.html exactly.
+    -->
+    <footer class="site-footer">
         <div class="footer-circle"></div>
         <div class="footer-circle2"></div>
         <div class="footer-inner">
             <div class="footer-brand">
                 <div class="footer-logo">
-                    <div class="footer-logo-icon">🪙</div>
+                    <div class="logo-icon sm">🪙</div>
                     <span class="footer-logo-text">Wallet Nakama</span>
                 </div>
-                <p class="footer-desc">
-                    Wallet Nakama is your friendly companion for smarter money management.
-                    Inspired by the word "Nakama" meaning trusted friends and companions,
-                    Wallet Nakama helps you stay on top of your finances without the stress
-                    or complexity of traditional budgeting apps.
-                </p>
+                <p>Your friendly companion for smarter money management. Inspired by "Nakama" — trusted friends and companions.</p>
             </div>
-            <div class="footer-tools">
+            <div class="footer-links">
                 <h4>Tools</h4>
-                <a href="#">Budget calculator</a>
-                <a href="#">Transaction management</a>
+                <ul>
+                    <li><a href="calculator.html">Budget calculator</a></li>
+                    <li><a href="transactions.html">Transaction management</a></li>
+                    <li><a href="about.html">About</a></li>
+                </ul>
             </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Wallet Nakama. Done By Bethlehem, Fatima And David.</p>
         </div>
     </footer>
 
-    <!-- ADD TRANSACTION MODAL -->
+    <!-- ADD / EDIT TRANSACTION MODAL -->
     <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
     <div class="modal" id="modal">
         <h3 class="modal-title">Add Transaction</h3>
@@ -164,7 +188,7 @@
             <input type="text" id="input-name" placeholder="e.g. Rent, Salary...">
         </div>
         <div class="modal-field">
-            <label>Amount ($)</label>
+            <label>Amount</label>
             <input type="number" id="input-amount" placeholder="0.00" min="0" step="0.01">
         </div>
         <div class="modal-field">
@@ -185,13 +209,7 @@
         </div>
     </div>
 
-    <script src="transactions.js">
-    const links = document.querySelectorAll('.nav-item');
-    links.forEach(link => {
-        if (link.href === window.location.href) {
-            link.classList.add('active');
-        }
-    });
-    </script>
+    <script src="shared.js"></script>
+    <script src="transactions.js"></script>
 </body>
 </html>

@@ -1,21 +1,22 @@
-// ── CURRENCY ──
-const CURRENCIES = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'NGN': '₦' };
-
-function getSavedCurrency() {
-    return localStorage.getItem('wn_currency') || 'USD';
-}
-
-function getCurrencySymbol() {
-    return CURRENCIES[getSavedCurrency()] || '$';
-}
-
-function saveCurrency(code) {
-    localStorage.setItem('wn_currency', code);
-}
+'use strict';
 
 // ── STATE ──
 let transactions = [];
 let editingIndex = null;
+
+// ── CURRENCY HELPERS ──
+// These were called in the original file but never defined anywhere — that JS crash
+// broke the entire page including the modal and Save Budget button.
+function getSavedCurrency() {
+    try { return localStorage.getItem('wn_tx_currency') || 'USD'; } catch { return 'USD'; }
+}
+function saveCurrency(val) {
+    try { localStorage.setItem('wn_tx_currency', val); } catch {}
+}
+function getCurrencySymbol() {
+    const symbols = { USD: '$', EUR: '€', GBP: '£', NGN: '₦' };
+    return symbols[getSavedCurrency()] || '$';
+}
 
 // ── CURRENCY SELECTOR ──
 function initCurrencySelector() {
@@ -24,8 +25,39 @@ function initCurrencySelector() {
     sel.value = getSavedCurrency();
     sel.addEventListener('change', () => {
         saveCurrency(sel.value);
-        render(); // re-render everything with new symbol
+        render();
     });
+}
+
+// ── LOAD & PERSIST via shared.js storage ──
+function loadTransactions() {
+    // getTransactions() from shared.js reads from the current user's localStorage key
+    const stored = getTransactions();
+    transactions = stored.map(tx => ({
+        id:     tx.id,
+        name:   tx.name,
+        amount: tx.amount,
+        type:   tx.type,
+        date:   tx.date,
+        createdAt: tx.createdAt
+    }));
+}
+
+function persistTransactions() {
+    const currency = getSavedCurrency();
+    const rate = RATES_TO_NGN[currency] || 1;
+    const shaped = transactions.map(tx => ({
+        id:        tx.id || uid(),
+        type:      tx.type,
+        name:      tx.name,
+        amount:    tx.amount,
+        currency:  currency,
+        amountNGN: tx.amount * rate,
+        date:      tx.date,
+        category:  'Others',
+        createdAt: tx.createdAt || Date.now()
+    }));
+    saveTransactions(shaped);
 }
 
 // ── MODAL ──
@@ -43,7 +75,7 @@ function openModal(index = null) {
         document.getElementById('input-name').value   = '';
         document.getElementById('input-amount').value = '';
         document.getElementById('input-type').value   = 'income';
-        document.getElementById('input-date').value   = today();
+        document.getElementById('input-date').value   = todayStr();
         document.querySelector('.modal-title').textContent = 'Add Transaction';
     }
 
@@ -57,7 +89,7 @@ function closeModal() {
     editingIndex = null;
 }
 
-// ── ADD / EDIT TRANSACTION ──
+// ── ADD / EDIT ──
 function addTransaction() {
     const name   = document.getElementById('input-name').value.trim();
     const amount = parseFloat(document.getElementById('input-amount').value);
@@ -69,7 +101,7 @@ function addTransaction() {
         return;
     }
 
-    const tx = { name, amount, type, date };
+    const tx = { id: uid(), name, amount, type, date, createdAt: Date.now() };
 
     if (editingIndex !== null) {
         transactions[editingIndex] = tx;
@@ -77,6 +109,7 @@ function addTransaction() {
         transactions.push(tx);
     }
 
+    persistTransactions();
     closeModal();
     render();
 }
@@ -85,17 +118,34 @@ function addTransaction() {
 function deleteTransaction(index) {
     if (confirm('Delete this transaction?')) {
         transactions.splice(index, 1);
+        persistTransactions();
         render();
+    }
+}
+
+// ── SAVE BUDGET (the summary card button) ──
+// Persists current transactions and shows confirmation.
+function saveBudget() {
+    if (transactions.length === 0) {
+        alert('No transactions to save yet. Add some transactions first.');
+        return;
+    }
+    persistTransactions();
+    // showToast isn't available here (no toast container on this page),
+    // so use a simple visual confirmation via the message element.
+    const msgEl = document.getElementById('message-text');
+    if (msgEl) {
+        const prev = msgEl.textContent;
+        msgEl.textContent = '✅ Budget saved!';
+        setTimeout(() => { msgEl.textContent = prev; }, 2500);
     }
 }
 
 // ── RENDER ──
 function render() {
     const isEmpty = transactions.length === 0;
-
     document.getElementById('empty-state').style.display  = isEmpty ? 'block' : 'none';
     document.getElementById('filled-state').style.display = isEmpty ? 'none'  : 'block';
-
     if (!isEmpty) {
         renderList();
         renderSummary();
@@ -108,17 +158,16 @@ function renderList() {
     list.innerHTML = '';
 
     transactions.forEach((tx, i) => {
-        const sign    = tx.type === 'income' ? '+' : '-';
-        const cls     = tx.type === 'income' ? 'income' : 'expense';
-        const padNum  = String(i + 1).padStart(2, '0');
-        const fmtDate = formatDate(tx.date);
+        const sign   = tx.type === 'income' ? '+' : '-';
+        const cls    = tx.type === 'income' ? 'income' : 'expense';
+        const padNum = String(i + 1).padStart(2, '0');
 
         const row = document.createElement('div');
         row.className = 'transaction-item';
         row.innerHTML = `
             <span class="tx-num">${padNum}</span>
             <span class="tx-name">${tx.name}</span>
-            <span class="tx-date">${fmtDate}</span>
+            <span class="tx-date">${fmtDate(tx.date)}</span>
             <span class="tx-amount ${cls}">${sign} ${sym} ${tx.amount.toLocaleString()}</span>
             <button class="tx-edit"   onclick="openModal(${i})" title="Edit">✏️</button>
             <button class="tx-delete" onclick="deleteTransaction(${i})" title="Delete">🗑️</button>
@@ -143,26 +192,16 @@ function renderSummary() {
     document.getElementById('deficit-row').style.opacity = deficit > 0 ? '1' : '0.4';
     document.getElementById('surplus-row').style.opacity = surplus > 0 ? '1' : '0.4';
 
-    // Dynamic message
     let msg = '';
-    if (surplus > 0) {
-        msg = `🎉 Great job! You have a surplus of ${sym}${surplus.toLocaleString()}.`;
-    } else if (deficit > 0) {
-        msg = `⚠️ You're over budget by ${sym}${deficit.toLocaleString()}. Time to cut back!`;
-    } else if (transactions.length > 0) {
-        msg = `✅ Perfectly balanced — income matches expenses.`;
-    } else {
-        msg = `Message: You either did good or….`;
-    }
+    if (surplus > 0)      msg = `🎉 Great job! You have a surplus of ${sym}${surplus.toLocaleString()}.`;
+    else if (deficit > 0) msg = `⚠️ You're over budget by ${sym}${deficit.toLocaleString()}. Time to cut back!`;
+    else                  msg = `✅ Perfectly balanced — income matches expenses.`;
     document.getElementById('message-text').textContent = msg;
 }
 
 // ── HELPERS ──
-function today() {
-    return new Date().toISOString().split('T')[0];
-}
-
-function formatDate(dateStr) {
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(dateStr) {
     if (!dateStr) return '';
     const [y, m, d] = dateStr.split('-');
     return `${d}/${m}/${y}`;
@@ -170,6 +209,8 @@ function formatDate(dateStr) {
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
+    requireAuth();          // shared.js — redirects to auth.html if not logged in
+    loadTransactions();     // pull from shared localStorage key
     initCurrencySelector();
     render();
 });

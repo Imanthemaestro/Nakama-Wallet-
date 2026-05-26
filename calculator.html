@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculator - Wallet Nakama</title>
+  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="calculator.css" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="toast-container" aria-live="polite"></div>
+
+  <nav class="navbar" id="main-nav">
+    <div class="nav-inner">
+      <a href="home.html" class="nav-logo">
+        <div class="logo-icon sm">
+          <img src="icons for wallet nakama/Card Wallet.png" alt="Wallet Nakama logo" />
+        </div>
+        <span>Wallet Nakama</span>
+      </a>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="transactions.html" class="nav-link">Transactions</a></li>
+        <li><a href="home.html" class="nav-link">Home</a></li>
+        <li><a href="calculator.html" class="nav-link active">Calculator</a></li>
+        <li><a href="about.html" class="nav-link">About</a></li>
+      </ul>
+      <div class="nav-user">
+        <span class="nav-hello">Hello, <strong id="nav-username"></strong></span>
+        <button class="btn-signout" id="signout-btn">Sign Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <!--
+    FIX 1 — Navbar → hero spacing:
+      Navbar: fixed, top: 18px, height: 64px → bottom edge at 82px.
+      padding-top: 120px gives ~38px of visible gap between navbar and hero icon.
+    FIX 2 — Bottom spacing: padding-bottom: 80px clears the footer.
+  -->
+  <main class="page active" style="padding-top: 120px; padding-bottom: 80px;">
+
+    <section class="hero">
+      <div class="hero-logo-icon">
+        <img src="icons for wallet nakama/Card Wallet.png" alt="Wallet Nakama logo" />
+      </div>
+      <h1 class="hero-title">Wallet Nakama</h1>
+      <p class="hero-sub">Your personal budget tracker</p>
+    </section>
+
+    <div class="page-content">
+      <div class="calc-tabs">
+        <!-- Budget tracker: active, stays on this page -->
+        <button class="calc-tab active" data-calc="budget">🔥 Budget tracker</button>
+        <!--
+          FIX 3 — Transactions tab: was toggling a panel inside this page (which then
+          showed a blank transaction list because it used a different storage shape).
+          Now navigates to transactions.html where that feature actually lives.
+        -->
+        <button class="calc-tab" onclick="window.location.href='transactions.html'">🟦 Transactions</button>
+      </div>
+
+      <!-- Budget panel only — calc-tx-panel removed, it lives on transactions.html now -->
+      <div id="calc-budget-panel" class="calc-panel active">
+        <div class="period-row">
+          <label>Period:</label>
+          <select id="calc-month" class="filter-select">
+            <option value="January">January</option><option value="February">February</option>
+            <option value="March">March</option><option value="April">April</option>
+            <option value="May" selected>May</option><option value="June">June</option>
+            <option value="July">July</option><option value="August">August</option>
+            <option value="September">September</option><option value="October">October</option>
+            <option value="November">November</option><option value="December">December</option>
+          </select>
+          <select id="calc-year" class="filter-select" style="width:90px"></select>
+          <select id="calc-summary-currency" class="filter-select">
+            <option value="NGN">₦ NGN</option>
+            <option value="USD">$ USD</option>
+            <option value="GBP">£ GBP</option>
+          </select>
+        </div>
+
+        <div class="budget-section">
+          <div class="budget-section-head income-head">
+            <span class="section-icon">💵</span>
+            <h3>Income</h3>
+          </div>
+          <div class="budget-rows" id="income-rows"></div>
+        </div>
+
+        <div class="budget-section">
+          <div class="budget-section-head expense-head">
+            <span class="section-icon">💸</span>
+            <h3>Expenses</h3>
+          </div>
+          <div class="budget-rows" id="expense-rows"></div>
+        </div>
+
+        <div class="card summary-card">
+          <div class="summary-head">
+            <span class="section-icon">📊</span>
+            <h3>Budget Summary</h3>
+          </div>
+          <div class="summary-row income-row">
+            <span>Total Income:</span><strong id="sum-income">₦ 0.00</strong>
+          </div>
+          <div class="summary-row expense-row-s">
+            <span>Total Expenses:</span><strong id="sum-expenses">₦ 0.00</strong>
+          </div>
+          <div class="summary-row surplus-row" id="surplus-row">
+            <span id="surplus-label">🟢 Surplus</span><strong id="sum-surplus">+ ₦ 0.00</strong>
+          </div>
+          <div class="summary-msg" id="summary-msg">
+            💡 Fill in your income and expenses above to see your budget summary.
+          </div>
+          <button class="btn-primary btn-full save-budget-btn" id="save-budget-btn">💜 Save Budget</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!--
+    FIX 4 — Footer: was using .footer-links ul > li > a but the old HTML had no <ul>/<li>
+    wrappers, so shared.css footer link styles never applied. Now matches home.html exactly:
+    dark green bg (var(--green3)), decorative circles, .footer-links ul structure,
+    .footer-bottom with correct copyright text.
+  -->
+  <footer class="site-footer">
+    <div class="footer-circle"></div>
+    <div class="footer-circle2"></div>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <div class="footer-logo">
+          <div class="logo-icon sm">💼</div>
+          <span class="footer-logo-text">Wallet Nakama</span>
+        </div>
+        <p>Your friendly companion for smarter money management. Inspired by "Nakama" — trusted friends and companions.</p>
+      </div>
+      <div class="footer-links">
+        <h4>Tools</h4>
+        <ul>
+          <li><a href="calculator.html">Budget calculator</a></li>
+          <li><a href="transactions.html">Transaction management</a></li>
+          <li><a href="about.html">About</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Wallet Nakama. Done By Bethlehem, Fatima And David.</p>
+    </div>
+  </footer>
+
+  <script src="shared.js"></script>
+  <script src="calculator.js"></script>
+</body>
+</html>
